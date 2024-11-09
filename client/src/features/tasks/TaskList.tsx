@@ -20,6 +20,7 @@ import {
   selectPendingTasks,
 } from "./tasksSlice"
 import type { FilterByType } from "./types/types"
+import { toast } from "react-toastify"
 
 interface TaskListProps {
   filterBy: FilterByType
@@ -48,7 +49,11 @@ export const TaskList = ({ filterBy }: TaskListProps) => {
   const tasks = useAppSelector(tasksSelect)
 
   useEffect(() => {
-    dispatch(getTasks())
+    toast.promise(dispatch(getTasks()).unwrap(), {
+      pending: "Pending fetch...",
+      error: "Error fetching tasks",
+      success: "Tasks fetched!",
+    })
   }, [dispatch])
 
   return (
