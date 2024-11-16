@@ -39,7 +39,7 @@ A modern, responsive todo list application with a React/Redux frontend and Node.
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Resized/todo-list.git
 ```
 
 2. Install dependencies for both client and server:
@@ -105,12 +105,3 @@ MONGODB_URI=mongodb://localhost:27017/todo-list
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Acknowledgments
-
-- Material-UI for the component library
-- MongoDB for the database solution
