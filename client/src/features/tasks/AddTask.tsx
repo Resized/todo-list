@@ -61,11 +61,7 @@ export const AddTask = () => {
           disabled={isAdding || fetchStatus !== "success"}
           variant="contained"
           type="submit"
-          endIcon={
-            (isAdding || fetchStatus !== "success") && (
-              <CircularProgress size="1rem" color="inherit" />
-            )
-          }
+          endIcon={isAdding && <CircularProgress size="1rem" color="inherit" />}
         >
           ADD
         </Button>

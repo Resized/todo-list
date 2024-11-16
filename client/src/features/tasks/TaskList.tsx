@@ -69,7 +69,12 @@ export const TaskList = () => {
 
   if (status === "failed") {
     content = (
-      <Stack minHeight={"inherit"} sx={{ gap: 2 }} justifyContent={"center"}>
+      <Stack
+        minHeight={"inherit"}
+        sx={{ gap: 2 }}
+        justifyContent={"center"}
+        alignSelf={"center"}
+      >
         <Typography color="error">Error fetching tasks...</Typography>
         <Button onClick={fetchTasks}>Retry</Button>
       </Stack>
@@ -109,7 +114,7 @@ export const TaskList = () => {
     )
   }
   return (
-    <Box
+    <Stack
       sx={{
         minHeight: theme.spacing(20),
         maxHeight: theme.spacing(80),
@@ -117,6 +122,6 @@ export const TaskList = () => {
       }}
     >
       {content}
-    </Box>
+    </Stack>
   )
 }
