@@ -1,5 +1,5 @@
 import { Brightness4, Brightness7 } from "@mui/icons-material"
-import { IconButton, Typography } from "@mui/material"
+import { IconButton, Stack, Typography } from "@mui/material"
 
 interface TaskTitleProps {
   darkMode: boolean
@@ -8,13 +8,13 @@ interface TaskTitleProps {
 
 export function TaskTitle({ darkMode, handleThemeChange }: TaskTitleProps) {
   return (
-    <>
-      <Typography color="primary" variant="h4">
+    <Stack direction="row" justifyContent="space-between" mb={1.5}>
+      <Typography color="primary" variant="h4" sx={{ fontWeight: "bold" }}>
         TODO LIST
       </Typography>
       <IconButton onClick={handleThemeChange}>
         {darkMode ? <Brightness7 /> : <Brightness4 />}
       </IconButton>
-    </>
+    </Stack>
   )
 }

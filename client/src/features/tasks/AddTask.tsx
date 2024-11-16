@@ -1,27 +1,47 @@
-import { Button, Stack, TextField } from "@mui/material"
+import { Button, CircularProgress, Stack, TextField } from "@mui/material"
 import type { FormEvent } from "react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { toast } from "react-toastify"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
-import { addTask, selectIsAdding } from "./tasksSlice"
+import { addTask, selectFetchStatus } from "./tasksSlice"
 
 export const AddTask = () => {
   const inputRef = useRef<HTMLInputElement>(null)
   const dispatch = useAppDispatch()
-  const isAdding = useAppSelector(selectIsAdding)
+  const [addStatus, setAddStatus] = useState<"idle" | "loading">("idle")
+  const fetchStatus = useAppSelector(selectFetchStatus)
+  const isAdding = addStatus === "loading"
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [isAdding])
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const form = e.currentTarget
 
     if (inputRef.current?.value) {
-      dispatch(addTask(inputRef.current.value))
+      const loadingTimeout = setTimeout(() => {
+        setAddStatus("loading")
+      }, 100)
+
+      try {
+        await toast.promise(
+          dispatch(addTask(inputRef.current.value)).unwrap(),
+          {
+            pending: "Adding task...",
+            error: "Error adding task",
+            success: "Task added!",
+          },
+        )
+      } catch (error) {
+        console.error(error)
+      }
+      clearTimeout(loadingTimeout)
     }
 
+    setAddStatus("idle")
     form.reset()
   }
 
@@ -29,7 +49,7 @@ export const AddTask = () => {
     <form onSubmit={handleSubmit}>
       <Stack direction="row" gap={1} justifyContent="center">
         <TextField
-          disabled={isAdding}
+          disabled={isAdding || fetchStatus !== "success"}
           autoFocus
           focused
           fullWidth
@@ -37,7 +57,16 @@ export const AddTask = () => {
           inputRef={inputRef}
           size="small"
         />
-        <Button disabled={isAdding} variant="contained" type="submit">
+        <Button
+          disabled={isAdding || fetchStatus !== "success"}
+          variant="contained"
+          type="submit"
+          endIcon={
+            (isAdding || fetchStatus !== "success") && (
+              <CircularProgress size="1rem" color="inherit" />
+            )
+          }
+        >
           ADD
         </Button>
       </Stack>

@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   CircularProgress,
   Collapse,
   Divider,
@@ -8,7 +9,9 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useEffect } from "react"
+import type { ReactNode } from "react"
+import { useCallback, useEffect } from "react"
+import { toast } from "react-toastify"
 import { TransitionGroup } from "react-transition-group"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { TaskItem } from "./TaskItem"
@@ -16,20 +19,17 @@ import {
   getTasks,
   selectAllTasks,
   selectDoneTasks,
-  selectIsFetching,
+  selectFetchStatus,
+  selectFilterBy,
   selectPendingTasks,
 } from "./tasksSlice"
-import type { FilterByType } from "./types/types"
-import { toast } from "react-toastify"
 
-interface TaskListProps {
-  filterBy: FilterByType
-}
-
-export const TaskList = ({ filterBy }: TaskListProps) => {
-  const isFetching = useAppSelector(selectIsFetching)
+export const TaskList = () => {
+  const status = useAppSelector(selectFetchStatus)
   const dispatch = useAppDispatch()
   const theme = useTheme()
+  const filterBy = useAppSelector(selectFilterBy)
+
   let tasksSelect:
     | typeof selectAllTasks
     | typeof selectDoneTasks
@@ -48,42 +48,73 @@ export const TaskList = ({ filterBy }: TaskListProps) => {
 
   const tasks = useAppSelector(tasksSelect)
 
-  useEffect(() => {
-    toast.promise(dispatch(getTasks()).unwrap(), {
-      pending: "Pending fetch...",
-      error: "Error fetching tasks",
-      success: "Tasks fetched!",
-    })
+  const fetchTasks = useCallback(async () => {
+    try {
+      await toast.promise(dispatch(getTasks()).unwrap(), {
+        pending: "Pending fetch...",
+        error: "Error fetching tasks",
+        success: "Tasks fetched!",
+      })
+    } catch (error) {
+      console.error(error)
+    }
   }, [dispatch])
 
-  return (
-    <Box maxHeight={theme.spacing(50)} overflow={"auto"}>
-      {isFetching ? (
+  useEffect(() => {
+    if (status !== "idle") return
+    fetchTasks()
+  }, [dispatch, fetchTasks, status])
+
+  let content: ReactNode
+
+  if (status === "failed") {
+    content = (
+      <Stack minHeight={"inherit"} sx={{ gap: 2 }} justifyContent={"center"}>
+        <Typography color="error">Error fetching tasks...</Typography>
+        <Button onClick={fetchTasks}>Retry</Button>
+      </Stack>
+    )
+  } else if (status === "loading") {
+    content = (
+      <Stack
+        minHeight={"inherit"}
+        justifyContent={"center"}
+        alignItems={"center"}
+      >
         <CircularProgress />
-      ) : (
-        <>
-          <List>
-            <TransitionGroup>
-              {tasks.length > 0 ? (
-                tasks.map((task, index) => (
-                  <Collapse key={task.id}>
-                    <div>
-                      <TaskItem {...task} />
-                      {index < tasks.length - 1 && <Divider />}
-                    </div>
-                  </Collapse>
-                ))
-              ) : (
-                <Collapse>
-                  <Typography color="textSecondary">
-                    No Tasks here...
-                  </Typography>
-                </Collapse>
-              )}
-            </TransitionGroup>
-          </List>
-        </>
-      )}
+      </Stack>
+    )
+  } else {
+    content = (
+      <List disablePadding>
+        <TransitionGroup>
+          {tasks.length > 0 ? (
+            tasks.map((task, index) => (
+              <Collapse key={task.id}>
+                <>
+                  <TaskItem {...task} />
+                  {index < tasks.length - 1 && <Divider />}
+                </>
+              </Collapse>
+            ))
+          ) : (
+            <Collapse>
+              <Typography color="textSecondary">No Tasks here...</Typography>
+            </Collapse>
+          )}
+        </TransitionGroup>
+      </List>
+    )
+  }
+  return (
+    <Box
+      sx={{
+        minHeight: theme.spacing(20),
+        maxHeight: theme.spacing(80),
+        overflow: "auto",
+      }}
+    >
+      {content}
     </Box>
   )
 }

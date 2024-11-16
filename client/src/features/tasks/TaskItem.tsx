@@ -14,9 +14,9 @@ import {
 import type { FormEvent } from "react"
 import { useRef, useState } from "react"
 import { toast } from "react-toastify"
-import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { useAppDispatch } from "../../app/hooks"
 import type { Task } from "./tasksSlice"
-import { removeTask, selectIsDeleting, updateTask } from "./tasksSlice"
+import { removeTask, updateTask } from "./tasksSlice"
 
 interface StyledListItemTextProps {
   done: boolean
@@ -37,31 +37,36 @@ const StyledListItemText = styled(ListItemText, {
 
 export const TaskItem = ({ ...task }: Task) => {
   const dispatch = useAppDispatch()
-  const [isEditing, setIsEditing] = useState<boolean>(false)
   const [isDone, setIsDone] = useState<boolean>(task.done)
   const inputRef = useRef<HTMLInputElement>()
-  const isDeleting = useAppSelector(selectIsDeleting(task.id))
+  const [state, setState] = useState<"idle" | "removing" | "editing">("idle")
+  const isRemoving = state === "removing"
+  const isEditing = state === "editing"
 
   const handleEdit = async () => {
-    setIsEditing(false)
+    setState("idle")
 
     if (inputRef.current && inputRef.current.value !== task.content) {
-      await toast.promise(
-        dispatch(
-          updateTask({ id: task.id, content: inputRef.current.value }),
-        ).unwrap(),
-        {
-          pending: "Pending update...",
-          error: "Error updating task",
-          success: "Task updated!",
-        },
-      )
+      try {
+        await toast.promise(
+          dispatch(
+            updateTask({ id: task.id, content: inputRef.current.value }),
+          ).unwrap(),
+          {
+            pending: "Pending update...",
+            error: "Error updating task",
+            success: "Task updated!",
+          },
+        )
+      } catch (error) {
+        console.error(error)
+      }
     }
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
+    inputRef.current?.blur()
     handleEdit()
   }
 
@@ -84,11 +89,21 @@ export const TaskItem = ({ ...task }: Task) => {
     }
   }
 
-  const handleClose = () => {
+  const handleRemove = async () => {
     if (isEditing) {
-      setIsEditing(false)
+      setState("idle")
     } else {
-      dispatch(removeTask(task.id))
+      setState("removing")
+      try {
+        await toast.promise(dispatch(removeTask(task.id)).unwrap(), {
+          pending: "Pending removal...",
+          error: "Error removing task",
+          success: "Task removed!",
+        })
+      } catch (error) {
+        console.error(error)
+        setState("idle")
+      }
     }
   }
   return (
@@ -99,19 +114,19 @@ export const TaskItem = ({ ...task }: Task) => {
       secondaryAction={
         <Stack direction="row" gap={1}>
           {isEditing ? (
-            <IconButton edge="end" onClick={handleEdit} disabled={isDeleting}>
+            <IconButton edge="end" onClick={handleEdit} disabled={isRemoving}>
               <Check />
             </IconButton>
           ) : (
             <IconButton
               edge="end"
-              onClick={() => setIsEditing(true)}
-              disabled={isDeleting}
+              onClick={() => setState("editing")}
+              disabled={isRemoving}
             >
               <Edit />
             </IconButton>
           )}
-          <IconButton edge="end" onClick={handleClose} disabled={isDeleting}>
+          <IconButton edge="end" onClick={handleRemove} disabled={isRemoving}>
             <Close />
           </IconButton>
         </Stack>
@@ -119,7 +134,7 @@ export const TaskItem = ({ ...task }: Task) => {
     >
       <ListItemButton
         disableRipple={isEditing}
-        disabled={isDeleting}
+        disabled={isRemoving}
         sx={{ borderRadius: 2, my: 0.5 }}
         onClick={handleDone}
       >
@@ -131,16 +146,21 @@ export const TaskItem = ({ ...task }: Task) => {
             disabled={isEditing}
           />
         </ListItemIcon>
-        <Box>
+        <>
           {isEditing ? (
-            <form onSubmit={handleSubmit}>
+            <Box component={"form"} onSubmit={handleSubmit} width={1}>
               <Input
+                size="small"
                 inputRef={inputRef}
                 fullWidth
+                multiline
                 autoFocus
                 defaultValue={task.content}
+                sx={{
+                  typography: "body2",
+                }}
               />
-            </form>
+            </Box>
           ) : (
             <StyledListItemText
               done={isDone}
@@ -159,7 +179,7 @@ export const TaskItem = ({ ...task }: Task) => {
               }}
             />
           )}
-        </Box>
+        </>
       </ListItemButton>
     </ListItem>
   )

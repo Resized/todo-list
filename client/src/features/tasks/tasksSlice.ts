@@ -1,3 +1,4 @@
+import type { PayloadAction } from "@reduxjs/toolkit"
 import {
   createAsyncThunk,
   createEntityAdapter,
@@ -6,6 +7,7 @@ import {
 } from "@reduxjs/toolkit"
 import { api } from "../../api/api"
 import type { RootState } from "../../app/store"
+import type { FilterByType } from "./types/types"
 
 export type Task = {
   id: string
@@ -16,11 +18,9 @@ export type Task = {
 
 type MongoTask = Omit<Task, "id"> & { _id: string }
 
-interface TasksState {
-  isAdding: boolean
-  isFetching: boolean
-  deletingTaskIds: string[]
-  updatingTaskIds: string[]
+export interface TasksState {
+  filterBy: FilterByType
+  status: "idle" | "loading" | "failed" | "success"
   error: string | null
 }
 const tasksAdapter = createEntityAdapter<Task>({
@@ -51,7 +51,7 @@ export const getTasks = createAsyncThunk<Task[], void, { state: RootState }>(
 
 export const addTask = createAsyncThunk<Task, string, { state: RootState }>(
   "tasks/addTask",
-  async (content, thunkAPI) => {
+  async (content, _thunkAPI) => {
     const response = await api.post<MongoTask>("/tasks", { content })
     const data = response.data
     return {
@@ -65,7 +65,7 @@ export const updateTask = createAsyncThunk<
   Task,
   UpdateTask,
   { state: RootState }
->("tasks/updateTask", async (task, thunkAPI) => {
+>("tasks/updateTask", async (task, _thunkAPI) => {
   const response = await api.patch<MongoTask>(`/tasks/${task.id}`, task)
   const data = response.data
   return {
@@ -74,82 +74,63 @@ export const updateTask = createAsyncThunk<
   }
 })
 
-export const removeTask = createAsyncThunk<void, string, { state: RootState }>(
-  "tasks/removeTask",
-  async (id, thunkAPI) => {
-    await api.delete(`/tasks/${id}`)
-  },
-)
+export const removeTask = createAsyncThunk<
+  string,
+  string,
+  { state: RootState }
+>("tasks/removeTask", async (id, _thunkAPI) => {
+  await api.delete(`/tasks/${id}`)
+  return id
+})
 
 export const tasksSlice = createSlice({
   name: "tasks",
   initialState: tasksAdapter.getInitialState<TasksState>({
-    isAdding: false,
-    isFetching: false,
-    deletingTaskIds: [],
-    updatingTaskIds: [],
+    filterBy: "all",
+    status: "idle",
     error: null,
   }),
-  reducers: {},
+  reducers: {
+    filterChanged(state, action: PayloadAction<FilterByType>) {
+      state.filterBy = action.payload
+    },
+  },
   extraReducers(builder) {
     builder
       .addCase(getTasks.pending, state => {
-        state.isFetching = true
+        state.status = "loading"
       })
       .addCase(getTasks.fulfilled, (state, action) => {
-        state.isFetching = false
+        state.status = "success"
         tasksAdapter.setAll(state, action.payload)
       })
       .addCase(getTasks.rejected, (state, action) => {
-        state.isFetching = false
+        state.status = "failed"
         if (action.error.message) state.error = action.error.message
       })
 
     builder
-      .addCase(addTask.pending, state => {
-        state.isAdding = true
-      })
       .addCase(addTask.fulfilled, (state, action) => {
-        state.isAdding = false
         tasksAdapter.addOne(state, action.payload)
       })
       .addCase(addTask.rejected, (state, action) => {
-        state.isAdding = false
         if (action.error.message) state.error = action.error.message
       })
 
     builder
-      .addCase(updateTask.pending, (state, action) => {
-        state.updatingTaskIds.push(action.meta.arg.id)
-      })
       .addCase(updateTask.fulfilled, (state, action) => {
-        state.updatingTaskIds = state.updatingTaskIds.filter(
-          taskId => taskId !== action.meta.arg.id,
-        )
         const { id, content, done } = action.payload
         tasksAdapter.updateOne(state, { id, changes: { content, done } })
       })
       .addCase(updateTask.rejected, (state, action) => {
-        state.updatingTaskIds = state.updatingTaskIds.filter(
-          taskId => taskId !== action.meta.arg.id,
-        )
         if (action.error.message) state.error = action.error.message
       })
 
     builder
-      .addCase(removeTask.pending, (state, action) => {
-        state.deletingTaskIds.push(action.meta.arg)
-      })
       .addCase(removeTask.fulfilled, (state, action) => {
-        state.deletingTaskIds = state.deletingTaskIds.filter(
-          taskId => taskId !== action.meta.arg,
-        )
-        tasksAdapter.removeOne(state, action.meta.arg)
+        tasksAdapter.removeOne(state, action.payload)
       })
       .addCase(removeTask.rejected, (state, action) => {
-        state.deletingTaskIds = state.deletingTaskIds.filter(
-          taskId => taskId !== action.meta.arg,
-        )
         if (action.error.message) state.error = action.error.message
       })
   },
@@ -162,21 +143,10 @@ export const {
   selectIds: selectTasksIds,
 } = tasksAdapter.getSelectors((state: RootState) => state.tasks)
 
-export const selectIsAdding = (state: RootState) => state.tasks.isAdding
-export const selectIsFetching = (state: RootState) => state.tasks.isFetching
+export const selectFetchStatus = (state: RootState) => state.tasks.status
 export const selectTasksError = (state: RootState) => state.tasks.error
 
-export const selectIsDeleting = (taskId: string) =>
-  createSelector(
-    [(state: RootState) => state.tasks.deletingTaskIds],
-    deletingTaskIds => deletingTaskIds.includes(taskId),
-  )
-
-export const selectIsUpdating = (taskId: string) =>
-  createSelector(
-    [(state: RootState) => state.tasks.updatingTaskIds],
-    updatingTaskIds => updatingTaskIds.includes(taskId),
-  )
+export const selectFilterBy = (state: RootState) => state.tasks.filterBy
 
 export const selectDoneTasks = createSelector([selectAllTasks], tasks =>
   tasks.filter(task => task.done),
@@ -185,5 +155,7 @@ export const selectDoneTasks = createSelector([selectAllTasks], tasks =>
 export const selectPendingTasks = createSelector([selectAllTasks], tasks =>
   tasks.filter(task => !task.done),
 )
+
+export const { filterChanged } = tasksSlice.actions
 
 export default tasksSlice.reducer

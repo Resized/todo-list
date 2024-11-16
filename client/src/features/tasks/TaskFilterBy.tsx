@@ -1,18 +1,21 @@
 import { ToggleButton, ToggleButtonGroup } from "@mui/material"
 import type { FilterByType } from "./types/types"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { filterChanged, selectFilterBy } from "./tasksSlice"
 
-interface TaskFilterByProps {
-  filterBy: FilterByType
-  handleFilterChange: (
-    e: React.MouseEvent<HTMLElement, MouseEvent>,
+export function TaskFilterBy() {
+  const dispatch = useAppDispatch()
+  const filterBy = useAppSelector(selectFilterBy)
+
+  function handleFilterChange(
+    _e: React.MouseEvent<HTMLElement>,
     newValue: FilterByType,
-  ) => void
-}
+  ) {
+    if (newValue !== null) {
+      dispatch(dispatch(filterChanged(newValue)))
+    }
+  }
 
-export function TaskFilterBy({
-  filterBy,
-  handleFilterChange,
-}: TaskFilterByProps) {
   return (
     <ToggleButtonGroup
       size="small"
