@@ -98,8 +98,10 @@ export const TaskList = () => {
               </Collapse>
             ))
           ) : (
-            <Collapse>
-              <Typography color="textSecondary">No Tasks here...</Typography>
+            <Collapse collapsedSize={0} key={"no-tasks"}>
+              <Typography color="textSecondary" padding={2}>
+                No Tasks here...
+              </Typography>
             </Collapse>
           )}
         </TransitionGroup>

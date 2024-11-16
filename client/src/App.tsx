@@ -18,7 +18,6 @@ import { TaskList } from "./features/tasks/TaskList"
 import { TaskTitle } from "./features/tasks/TaskTitle"
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  // maxHeight: `calc(100vh - ${theme.spacing(2)})`,
   maxHeight: `min(800px, calc(100vh - ${theme.spacing(4)}))`,
   height: "fit-content",
   padding: theme.spacing(3),
@@ -77,8 +76,8 @@ const App = () => {
             <Stack
               gap={2}
               sx={{
-                overflow: "hidden", // Single overflow control point
-                pt: 1, // Add some margin top if needed
+                overflow: "hidden",
+                pt: 1,
               }}
             >
               <AddTask />

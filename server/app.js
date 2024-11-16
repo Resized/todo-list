@@ -6,12 +6,12 @@ const logger = require("morgan");
 const mongoose = require("mongoose");
 const tasksRouter = require("./routes/tasks");
 const cors = require("cors");
-
 const app = express();
+require("dotenv").config();
 
 (async () => {
   try {
-    await mongoose.connect("mongodb://localhost/todos");
+    await mongoose.connect(process.env.MONGODB_URI);
 
     console.log("Connected to MongoDB");
   } catch (error) {
