@@ -39,7 +39,7 @@ A modern, responsive todo list application with a React/Redux frontend and Node.
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Resized/todo-list.git
 ```
 
 2. Install dependencies for both client and server:
