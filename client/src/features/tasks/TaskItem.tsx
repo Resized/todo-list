@@ -37,20 +37,20 @@ const StyledListItemText = styled(ListItemText, {
 
 export const TaskItem = ({ ...task }: Task) => {
   const dispatch = useAppDispatch()
-  const [isDone, setIsDone] = useState<boolean>(task.done)
   const inputRef = useRef<HTMLInputElement>()
   const [state, setState] = useState<"idle" | "removing" | "editing">("idle")
   const isRemoving = state === "removing"
   const isEditing = state === "editing"
+  const isDone = task.done
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     setState("idle")
 
     if (inputRef.current && inputRef.current.value !== task.content) {
       try {
-        await toast.promise(
+        void toast.promise(
           dispatch(
-            updateTask({ id: task.id, content: inputRef.current.value }),
+            updateTask({ _id: task._id, content: inputRef.current.value }),
           ).unwrap(),
           {
             pending: "Pending update...",
@@ -70,13 +70,11 @@ export const TaskItem = ({ ...task }: Task) => {
     handleEdit()
   }
 
-  const handleDone = async () => {
-    const prevDone = isDone
+  const handleDone = () => {
     if (!isEditing) {
-      setIsDone(!prevDone)
       try {
-        await toast.promise(
-          dispatch(updateTask({ id: task.id, done: !prevDone })).unwrap(),
+        void toast.promise(
+          dispatch(updateTask({ _id: task._id, done: !isDone })).unwrap(),
           {
             pending: "Pending update...",
             error: "Error updating task",
@@ -84,18 +82,18 @@ export const TaskItem = ({ ...task }: Task) => {
           },
         )
       } catch (error) {
-        setIsDone(prevDone)
+        console.error(error)
       }
     }
   }
 
-  const handleRemove = async () => {
+  const handleRemove = () => {
     if (isEditing) {
       setState("idle")
     } else {
       setState("removing")
       try {
-        await toast.promise(dispatch(removeTask(task.id)).unwrap(), {
+        void toast.promise(dispatch(removeTask(task._id)).unwrap(), {
           pending: "Pending removal...",
           error: "Error removing task",
           success: "Task removed!",
@@ -154,7 +152,6 @@ export const TaskItem = ({ ...task }: Task) => {
                 inputRef={inputRef}
                 fullWidth
                 multiline
-                autoFocus
                 defaultValue={task.content}
                 sx={{
                   typography: "body2",

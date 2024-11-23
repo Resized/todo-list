@@ -16,13 +16,18 @@ import { TransitionGroup } from "react-transition-group"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { TaskItem } from "./TaskItem"
 import {
+  addClientTask,
   getTasks,
+  removeClientTask,
   selectAllTasks,
   selectDoneTasks,
   selectFetchStatus,
   selectFilterBy,
   selectPendingTasks,
+  Task,
+  updateClientTask,
 } from "./tasksSlice"
+import { Update } from "@reduxjs/toolkit"
 
 export const TaskList = () => {
   const status = useAppSelector(selectFetchStatus)
@@ -48,9 +53,9 @@ export const TaskList = () => {
 
   const tasks = useAppSelector(tasksSelect)
 
-  const fetchTasks = useCallback(async () => {
+  const fetchTasks = useCallback(() => {
     try {
-      await toast.promise(dispatch(getTasks()).unwrap(), {
+      void toast.promise(dispatch(getTasks()).unwrap(), {
         pending: "Pending fetch...",
         error: "Error fetching tasks",
         success: "Tasks fetched!",
@@ -64,6 +69,39 @@ export const TaskList = () => {
     if (status !== "idle") return
     fetchTasks()
   }, [dispatch, fetchTasks, status])
+
+  useEffect(() => {
+    const eventSource = new EventSource(
+      `${import.meta.env.VITE_API_URL}/tasks/events`,
+    )
+    eventSource.onopen = () => console.log("Connected to event source...")
+
+    eventSource.addEventListener("taskCreated", event => {
+      toast.success("Task created!")
+      const data = JSON.parse(event.data)
+      dispatch(addClientTask(data))
+    })
+
+    eventSource.addEventListener("taskRemoved", event => {
+      toast.success("Task removed!")
+      const data = JSON.parse(event.data)
+      dispatch(removeClientTask(data._id))
+    })
+
+    eventSource.addEventListener("taskUpdated", event => {
+      toast.success("Task updated!")
+      const data = JSON.parse(event.data)
+      dispatch(updateClientTask(data))
+    })
+
+    eventSource.onerror = error => {
+      console.error(error)
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [])
 
   let content: ReactNode
 
@@ -95,7 +133,7 @@ export const TaskList = () => {
         <TransitionGroup>
           {tasks.length > 0 ? (
             tasks.map((task, index) => (
-              <Collapse key={task.id}>
+              <Collapse key={task._id}>
                 <>
                   <TaskItem {...task} />
                   {index < tasks.length - 1 && <Divider />}
@@ -104,7 +142,11 @@ export const TaskList = () => {
             ))
           ) : (
             <Collapse collapsedSize={0} key={"no-tasks"}>
-              <Typography color="textSecondary" padding={2}>
+              <Typography
+                color="textSecondary"
+                padding={2}
+                sx={{ userSelect: "none" }}
+              >
                 No Tasks here...
               </Typography>
             </Collapse>

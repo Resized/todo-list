@@ -16,7 +16,7 @@ export const AddTask = () => {
     inputRef.current?.focus()
   }, [isAdding])
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const form = e.currentTarget
@@ -27,14 +27,11 @@ export const AddTask = () => {
       }, 100)
 
       try {
-        await toast.promise(
-          dispatch(addTask(inputRef.current.value)).unwrap(),
-          {
-            pending: "Adding task...",
-            error: "Error adding task",
-            success: "Task added!",
-          },
-        )
+        void toast.promise(dispatch(addTask(inputRef.current.value)).unwrap(), {
+          pending: "Adding task...",
+          error: "Error adding task",
+          success: "Task added!",
+        })
       } catch (error) {
         console.error(error)
       }
@@ -50,7 +47,6 @@ export const AddTask = () => {
       <Stack direction="row" gap={1} justifyContent="center">
         <TextField
           disabled={isAdding || fetchStatus !== "success"}
-          autoFocus
           focused
           fullWidth
           label="Add task here..."

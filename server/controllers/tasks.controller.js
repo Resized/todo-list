@@ -18,6 +18,13 @@ const createTask = async (req, res) => {
     }
 
     const task = await Task.create({ content });
+
+    // Send an SSE update
+    clients.forEach((client) => {
+      client.res.write(`event: taskCreated\n`);
+      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+    });
+
     res.status(201).json(task);
   } catch (error) {
     console.log(error);
@@ -56,6 +63,12 @@ const patchTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
+    // Send an SSE update
+    clients.forEach((client) => {
+      client.res.write(`event: taskUpdated\n`);
+      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+    });
+
     res.status(200).json(task);
   } catch (error) {
     console.error(error);
@@ -70,6 +83,13 @@ const deleteTask = async (req, res) => {
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
+
+    // Send an SSE update
+    clients.forEach((client) => {
+      client.res.write(`event: taskRemoved\n`);
+      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+    });
+
     res.status(200).json(task);
   } catch (error) {
     console.log(error);
@@ -77,9 +97,33 @@ const deleteTask = async (req, res) => {
   }
 };
 
+const clients = [];
+
+const getEvents = async (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const clientId = crypto.randomUUID();
+  const client = { id: clientId, res };
+  clients.push(client);
+
+  client.res.write(`event: connected\n`);
+  client.res.write(`data: connected successfully!\n\n`);
+
+  // Handle client disconnect
+  req.on("close", () => {
+    console.log(`Client disconnected: ${client.id}`);
+    clients.splice(clients.indexOf(client), 1);
+  });
+};
+
 module.exports = {
   getTasks,
   createTask,
   patchTask,
   deleteTask,
+  getEvents,
 };
