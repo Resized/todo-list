@@ -12,11 +12,11 @@ import {
   styled,
 } from "@mui/material"
 import type { FormEvent } from "react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
-import { useAppDispatch } from "../../app/hooks"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import type { Task } from "./tasksSlice"
-import { removeTask, updateTask } from "./tasksSlice"
+import { removeTask, selectTaskById, updateTask } from "./tasksSlice"
 
 interface StyledListItemTextProps {
   done: boolean
@@ -35,20 +35,26 @@ const StyledListItemText = styled(ListItemText, {
   },
 }))
 
-export const TaskItem = ({ ...task }: Task) => {
+export const TaskItem = ({ id }: { id: string }) => {
   const dispatch = useAppDispatch()
   const inputRef = useRef<HTMLInputElement>()
   const [state, setState] = useState<"idle" | "removing" | "editing">("idle")
   const isRemoving = state === "removing"
   const isEditing = state === "editing"
-  const isDone = task.done
+  const task = useAppSelector(state => selectTaskById(state, id))
+  const [isDone, setIsDone] = useState(task.done)
+
+  useEffect(() => {
+    // synchronize isDone to external updates of the task
+    setIsDone(task.done)
+  }, [task.done])
 
   const handleEdit = () => {
     setState("idle")
 
     if (inputRef.current && inputRef.current.value !== task.content) {
-      try {
-        void toast.promise(
+      void toast
+        .promise(
           dispatch(
             updateTask({ _id: task._id, content: inputRef.current.value }),
           ).unwrap(),
@@ -58,9 +64,7 @@ export const TaskItem = ({ ...task }: Task) => {
             success: "Task updated!",
           },
         )
-      } catch (error) {
-        console.error(error)
-      }
+        .catch(error => console.error(error))
     }
   }
 
@@ -71,9 +75,11 @@ export const TaskItem = ({ ...task }: Task) => {
   }
 
   const handleDone = () => {
+    const prevDone = isDone
     if (!isEditing) {
-      try {
-        void toast.promise(
+      setIsDone(!isDone)
+      void toast
+        .promise(
           dispatch(updateTask({ _id: task._id, done: !isDone })).unwrap(),
           {
             pending: "Pending update...",
@@ -81,9 +87,10 @@ export const TaskItem = ({ ...task }: Task) => {
             success: "Task updated!",
           },
         )
-      } catch (error) {
-        console.error(error)
-      }
+        .catch(error => {
+          console.error(error)
+          setIsDone(prevDone)
+        })
     }
   }
 
@@ -92,16 +99,16 @@ export const TaskItem = ({ ...task }: Task) => {
       setState("idle")
     } else {
       setState("removing")
-      try {
-        void toast.promise(dispatch(removeTask(task._id)).unwrap(), {
+      void toast
+        .promise(dispatch(removeTask(task._id)).unwrap(), {
           pending: "Pending removal...",
           error: "Error removing task",
           success: "Task removed!",
         })
-      } catch (error) {
-        console.error(error)
-        setState("idle")
-      }
+        .catch(error => {
+          console.error(error)
+          setState("idle")
+        })
     }
   }
   return (

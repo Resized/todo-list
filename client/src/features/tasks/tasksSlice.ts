@@ -137,12 +137,19 @@ export const selectTasksError = (state: RootState) => state.tasks.error
 
 export const selectFilterBy = (state: RootState) => state.tasks.filterBy
 
-export const selectDoneTasks = createSelector([selectAllTasks], tasks =>
-  tasks.filter(task => task.done),
-)
-
-export const selectPendingTasks = createSelector([selectAllTasks], tasks =>
-  tasks.filter(task => !task.done),
+export const selectTasksByFilter = createSelector(
+  [selectAllTasks, selectFilterBy],
+  (tasks, filterBy) =>
+    tasks.filter(task => {
+      switch (filterBy) {
+        case "done":
+          return task.done
+        case "pending":
+          return !task.done
+        default:
+          return true
+      }
+    }),
 )
 
 export const {

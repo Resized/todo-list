@@ -12,6 +12,7 @@ const getTasks = async (req, res) => {
 const createTask = async (req, res) => {
   try {
     const { content } = req.body;
+    const sourceClientId = req.headers["x-client-id"];
 
     if (typeof content === "undefined" || content.trim() === "") {
       return res.status(400).json({ message: "No content provided" });
@@ -21,8 +22,10 @@ const createTask = async (req, res) => {
 
     // Send an SSE update
     clients.forEach((client) => {
-      client.res.write(`event: taskCreated\n`);
-      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      if (client.id !== sourceClientId) {
+        client.res.write(`event: taskCreated\n`);
+        client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      }
     });
 
     res.status(201).json(task);
@@ -36,6 +39,7 @@ const patchTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { content, done } = req.body;
+    const sourceClientId = req.headers["x-client-id"];
 
     // Check if both content and done are missing
     if (typeof content === "undefined" && typeof done === "undefined") {
@@ -65,8 +69,10 @@ const patchTask = async (req, res) => {
 
     // Send an SSE update
     clients.forEach((client) => {
-      client.res.write(`event: taskUpdated\n`);
-      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      if (client.id !== sourceClientId) {
+        client.res.write(`event: taskUpdated\n`);
+        client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      }
     });
 
     res.status(200).json(task);
@@ -79,6 +85,8 @@ const patchTask = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
+    const sourceClientId = req.headers["x-client-id"];
+
     const task = await Task.findByIdAndDelete(id);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
@@ -86,8 +94,10 @@ const deleteTask = async (req, res) => {
 
     // Send an SSE update
     clients.forEach((client) => {
-      client.res.write(`event: taskRemoved\n`);
-      client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      if (client.id !== sourceClientId) {
+        client.res.write(`event: taskRemoved\n`);
+        client.res.write(`data: ${JSON.stringify(task)}\n\n`);
+      }
     });
 
     res.status(200).json(task);
@@ -111,7 +121,7 @@ const getEvents = async (req, res) => {
   clients.push(client);
 
   client.res.write(`event: connected\n`);
-  client.res.write(`data: connected successfully!\n\n`);
+  client.res.write(`data: ${JSON.stringify({ clientId })}\n\n`);
 
   // Handle client disconnect
   req.on("close", () => {

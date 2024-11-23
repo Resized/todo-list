@@ -1,5 +1,4 @@
 import {
-  Box,
   Button,
   CircularProgress,
   Collapse,
@@ -13,45 +12,23 @@ import type { ReactNode } from "react"
 import { useCallback, useEffect } from "react"
 import { toast } from "react-toastify"
 import { TransitionGroup } from "react-transition-group"
+import { setClientId } from "../../api/api"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { TaskItem } from "./TaskItem"
 import {
   addClientTask,
   getTasks,
   removeClientTask,
-  selectAllTasks,
-  selectDoneTasks,
   selectFetchStatus,
-  selectFilterBy,
-  selectPendingTasks,
-  Task,
+  selectTasksByFilter,
   updateClientTask,
 } from "./tasksSlice"
-import { Update } from "@reduxjs/toolkit"
 
 export const TaskList = () => {
   const status = useAppSelector(selectFetchStatus)
   const dispatch = useAppDispatch()
   const theme = useTheme()
-  const filterBy = useAppSelector(selectFilterBy)
-
-  let tasksSelect:
-    | typeof selectAllTasks
-    | typeof selectDoneTasks
-    | typeof selectPendingTasks
-  switch (filterBy) {
-    case "done":
-      tasksSelect = selectDoneTasks
-      break
-    case "pending":
-      tasksSelect = selectPendingTasks
-      break
-    default:
-      tasksSelect = selectAllTasks
-      break
-  }
-
-  const tasks = useAppSelector(tasksSelect)
+  const tasks = useAppSelector(selectTasksByFilter)
 
   const fetchTasks = useCallback(() => {
     try {
@@ -76,22 +53,31 @@ export const TaskList = () => {
     )
     eventSource.onopen = () => console.log("Connected to event source...")
 
+    // Add handler for connected event
+    eventSource.addEventListener("connected", event => {
+      const data = JSON.parse(event.data)
+      setClientId(data.clientId) // Set the client ID from the API module
+    })
+
     eventSource.addEventListener("taskCreated", event => {
-      toast.success("Task created!")
       const data = JSON.parse(event.data)
       dispatch(addClientTask(data))
+      // Only show toast if we didn't create the task ourselves
+      toast.success("New task created by another client!")
     })
 
     eventSource.addEventListener("taskRemoved", event => {
-      toast.success("Task removed!")
       const data = JSON.parse(event.data)
       dispatch(removeClientTask(data._id))
+      // Only show toast if we didn't remove the task ourselves
+      toast.success("Task removed by another client!")
     })
 
     eventSource.addEventListener("taskUpdated", event => {
-      toast.success("Task updated!")
       const data = JSON.parse(event.data)
       dispatch(updateClientTask(data))
+      // Only show toast if we didn't update the task ourselves
+      toast.success("Task updated by another client!")
     })
 
     eventSource.onerror = error => {
@@ -135,7 +121,7 @@ export const TaskList = () => {
             tasks.map((task, index) => (
               <Collapse key={task._id}>
                 <>
-                  <TaskItem {...task} />
+                  <TaskItem id={task._id} />
                   {index < tasks.length - 1 && <Divider />}
                 </>
               </Collapse>
