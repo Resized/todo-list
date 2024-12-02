@@ -30,9 +30,9 @@ export const TaskList = () => {
   const theme = useTheme()
   const tasks = useAppSelector(selectTasksByFilter)
 
-  const fetchTasks = useCallback(() => {
+  const fetchTasks = useCallback(async () => {
     try {
-      void toast.promise(dispatch(getTasks()).unwrap(), {
+      await toast.promise(dispatch(getTasks()).unwrap(), {
         pending: "Pending fetch...",
         error: "Error fetching tasks",
         success: "Tasks fetched!",

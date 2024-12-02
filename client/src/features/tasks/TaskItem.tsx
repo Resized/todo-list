@@ -15,7 +15,6 @@ import type { FormEvent } from "react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
-import type { Task } from "./tasksSlice"
 import { removeTask, selectTaskById, updateTask } from "./tasksSlice"
 
 interface StyledListItemTextProps {
@@ -41,19 +40,26 @@ export const TaskItem = ({ id }: { id: string }) => {
   const [state, setState] = useState<"idle" | "removing" | "editing">("idle")
   const isRemoving = state === "removing"
   const isEditing = state === "editing"
-  const task = useAppSelector(state => selectTaskById(state, id))
-  const [isDone, setIsDone] = useState(task.done)
+  const task = useAppSelector(state => selectTaskById(state, id)) // undefined after removal
+  const removedTask = useRef(task)
+  const [isDone, setIsDone] = useState(task?.done ?? removedTask.current.done)
 
   useEffect(() => {
-    // synchronize isDone to external updates of the task
-    setIsDone(task.done)
-  }, [task.done])
+    if (task) {
+      removedTask.current = task
+    }
+  }, [task])
 
-  const handleEdit = () => {
+  useEffect(() => {
+    // synchronize `isDone` to external updates of the task
+    if (task) setIsDone(task.done)
+  }, [task])
+
+  const handleEdit = async () => {
     setState("idle")
 
     if (inputRef.current && inputRef.current.value !== task.content) {
-      void toast
+      await toast
         .promise(
           dispatch(
             updateTask({ _id: task._id, content: inputRef.current.value }),
@@ -74,11 +80,11 @@ export const TaskItem = ({ id }: { id: string }) => {
     handleEdit()
   }
 
-  const handleDone = () => {
+  const handleDone = async () => {
     const prevDone = isDone
     if (!isEditing) {
       setIsDone(!isDone)
-      void toast
+      await toast
         .promise(
           dispatch(updateTask({ _id: task._id, done: !isDone })).unwrap(),
           {
@@ -94,12 +100,12 @@ export const TaskItem = ({ id }: { id: string }) => {
     }
   }
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     if (isEditing) {
       setState("idle")
     } else {
       setState("removing")
-      void toast
+      await toast
         .promise(dispatch(removeTask(task._id)).unwrap(), {
           pending: "Pending removal...",
           error: "Error removing task",
@@ -168,8 +174,10 @@ export const TaskItem = ({ id }: { id: string }) => {
           ) : (
             <StyledListItemText
               done={isDone}
-              primary={task.content}
-              secondary={new Date(task.date).toLocaleString()}
+              primary={task?.content ?? removedTask.current.content}
+              secondary={new Date(
+                task?.date ?? removedTask.current.date,
+              ).toLocaleString()}
               primaryTypographyProps={{
                 style: {
                   overflowWrap: "anywhere",

@@ -20,7 +20,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   maxHeight: `min(800px, calc(100vh - ${theme.spacing(4)}))`,
   height: "fit-content",
   padding: theme.spacing(3),
-  borderRadius: theme.spacing(3),
+  borderRadius: theme.spacing(2),
   display: "flex",
   flexDirection: "column",
   "&::before": {

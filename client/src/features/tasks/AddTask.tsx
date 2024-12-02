@@ -16,7 +16,7 @@ export const AddTask = () => {
     inputRef.current?.focus()
   }, [isAdding])
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const form = e.currentTarget
@@ -27,11 +27,14 @@ export const AddTask = () => {
       }, 100)
 
       try {
-        void toast.promise(dispatch(addTask(inputRef.current.value)).unwrap(), {
-          pending: "Adding task...",
-          error: "Error adding task",
-          success: "Task added!",
-        })
+        await toast.promise(
+          dispatch(addTask(inputRef.current.value)).unwrap(),
+          {
+            pending: "Adding task...",
+            error: "Error adding task",
+            success: "Task added!",
+          },
+        )
       } catch (error) {
         console.error(error)
       }
@@ -57,7 +60,9 @@ export const AddTask = () => {
           disabled={isAdding || fetchStatus !== "success"}
           variant="contained"
           type="submit"
-          endIcon={isAdding && <CircularProgress size="1rem" color="inherit" />}
+          startIcon={
+            isAdding && <CircularProgress size="1rem" color="inherit" />
+          }
         >
           ADD
         </Button>
