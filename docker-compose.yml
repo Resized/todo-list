@@ -1,0 +1,33 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    volumes:
+      - ./client/dist:/app/dist # Persist the dist folder to host
+    env_file:
+      - ./client/.env
+    command: npm run build # Build the Vite project
+
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    volumes:
+      - ./server/public:/app/public # Serve static files
+      - ./client/dist:/app/public # Use built dist files directly
+    ports:
+      - "5000:5000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/todo-list
+    env_file:
+      - ./server/.env
+    command: npm start
+    depends_on:
+      - client
+      - mongodb

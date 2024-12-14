@@ -1,0 +1,38 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev # Use a dedicated dev Dockerfile
+    volumes:
+      - ./client:/app # Mount client code to container
+      - /app/node_modules # Prevent overwriting node_modules
+    ports:
+      - "5173:5173" # Vite default dev server port
+    env_file:
+      - ./client/.env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - BROWSER=none
+    command: npm run dev -- --host # Run Vite dev server
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./server:/app # Mount the entire server folder
+      - /app/node_modules # Prevent overwriting node_modules
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/todo-list
+    env_file:
+      - ./server/.env
+    command: npm run dev # Use Nodemon to watch changes
+    depends_on:
+      - mongodb

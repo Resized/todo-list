@@ -1,0 +1,20 @@
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+
+  server:
+    image: todolist-server
+    depends_on:
+      - mongodb
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/todo-list
+    ports:
+      - 5000:5000

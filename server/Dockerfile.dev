@@ -1,0 +1,21 @@
+# Base image
+FROM node:lts-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Install nodemon globally for development
+RUN npm install -g nodemon
+
+# Copy the source code (to be overwritten by volumes)
+COPY . .
+
+# Expose server port
+EXPOSE 5000
+
+# Use Nodemon to watch for file changes
+CMD ["npm", "run", "dev"]
